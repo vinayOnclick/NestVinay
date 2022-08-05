@@ -1,0 +1,39 @@
+{
+  "defaultSeverity": "error",
+  "extends": ["tslint:recommended"],
+  "jsRules": {
+    "no-unused-expression": true
+  },
+  "rules": {
+    "quotemark": [true, "single"],
+    "member-access": [false],
+    "ordered-imports": [false],
+    "max-line-length": [true, 150],
+    "member-ordering": [false],
+    "interface-name": [false],
+    "arrow-parens": false,
+    "object-literal-sort-keys": false
+  },
+  "rulesDirectory": []
+}
+
+
+GNU nano 4.8                                                           ingress.yaml                                                                      
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: argo-server
+    annotations:
+        ingress.kubernetes.io/rewrite-target: /$2
+        ingress.kubernetes.io/protocol: https # Traefik
+        nginx.ingress.kubernetes.io/backend-protocol: https # ingress-nginx
+spec:
+    rules:
+        - host: "k8s-cluster.hopabot.com"
+        http:
+            paths:
+                - backend:
+                    serviceName: argo-server
+                    servicePort: http
+                path: /argo(/|$)(.*)
+                pathType: Prefix
