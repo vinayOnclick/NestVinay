@@ -81,6 +81,121 @@ export class UsersService {
       return {user,accesstoken}
     }
   }
+  static async sendEmail(req, res) {
+    try {
+      let user = await this.usersModel.findOne({ email: req.body.email });
+      console.log(user);
+      if (!user) {
+        res.json({ message: "users not found" });
+      } else {
+        const sent = await this.usersModel.sendMail({
+          from: user.email,
+          to: user.email,
+          subject: "Its a SMTP message from vinay Sharma",
+          html: "hello folks",
+        });
+
+        return res.json({
+          message: "SUCCESS",
+          data: sent,
+        });
+      }
+    } catch (error) {
+      return res.json({
+        message: "FAILED",
+        data: error,
+      });
+    }
+  }
+
+  async verifyTokenByEmail(emailVerifyCredentialsDto: any) {
+    try {
+      let userToAttempt, errorMsgNotFound, successMsg: any;
+      if (emailVerifyCredentialsDto.email) {
+        userToAttempt = await this.userModel.findOne({
+          email: emailVerifyCredentialsDto.email,
+        });
+        errorMsgNotFound = 'Email not found !';
+        successMsg = 'Email verification is successfully!';
+      } else {
+        userToAttempt = await this.userModel.findOne({
+          phoneNumber: emailVerifyCredentialsDto.phone,
+        });
+        errorMsgNotFound = 'Phone number not found !';
+        successMsg = 'Phone verification is successfully!';
+      }
+      if (!userToAttempt) throw new BadRequestException(errorMsgNotFound);
+
+      return this.userVerificationModel
+        .findOne({
+          createdUser: userToAttempt._id,
+          otp: emailVerifyCredentialsDto.code,
+          verifiedStatus: false,
+        })
+        .then(
+          (data) => {
+            if (data) {
+              let userData = this.userModel
+                .findByIdAndUpdate(userToAttempt._id, { emailVerified: true })
+                .exec();
+              data.verifiedStatus = true;
+              data.verifiedTime = new Date();
+              data.save();
+              return { data: data, msg: successMsg };
+            } else {
+              return new BadRequestException('Verification code is invalid!');
+            }
+          },
+          (error) => {
+            return new BadRequestException('Verification code is invalid!');
+          },
+        );
+    } catch (e) {
+      return new BadRequestException('Internal server error');
+    }
+  }
+  
+  async verifyTokenByEmailPassword(
+    resetPasswordCredentialsDto: ResetPasswordCredentialsDto,
+  ) {
+    try {
+      if (
+        resetPasswordCredentialsDto.password !=
+        resetPasswordCredentialsDto.confirmPassword
+      ) {
+        return new BadRequestException(
+          'Password does not match with confirm password',
+        );
+      }
+      let user = await this.findOneByEmail(resetPasswordCredentialsDto.email);
+      if (!user) throw new BadRequestException('Email not found !');
+      let passwordTokenData = await this.userVerificationModel.findOne({
+        createdUser: user._id,
+        otp: resetPasswordCredentialsDto.code,
+        verifiedStatus: false,
+      });
+      if (!passwordTokenData) {
+        return new BadRequestException('Verification code is invalid!');
+      }
+      return await this.userModel
+        .findOne({ email: resetPasswordCredentialsDto.email })
+        .then(
+          (userToAttempt) => {
+            passwordTokenData.verifiedStatus = true;
+            passwordTokenData.verifiedTime = new Date();
+            passwordTokenData.save();
+            userToAttempt.password = resetPasswordCredentialsDto.password;
+            userToAttempt.save();
+            return { msg: 'Password  is successfully updated!' };
+          },
+          (error) => {
+            throw new BadRequestException('Email not found !');
+          },
+        );
+    } catch (e) {
+      return new BadRequestException('Internal server error');
+    }
+  }
 }
 
 

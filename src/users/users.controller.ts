@@ -42,4 +42,35 @@ export class UsersController {
   async logIn(@Body() authCredentialsDto: AuthCredentialsDto, @Request() req) {
     return await this.userService.login(authCredentialsDto, req);
   }
+
+  @ApiOperation({ summary: 'Reset password' })
+  @Post('/resetpass')
+  @ApiConsumes('multipart/form-data', 'application/json')
+  async verifyTokenByEmailPassword(
+    @Body(ValidationPipe)
+    resetPasswordCredentialsDto: ResetPasswordCredentialsDto,
+  ) {
+    return await this.userService.verifyTokenByEmailPassword(
+      resetPasswordCredentialsDto,
+    );
+  }
+
+  @ApiOperation({ summary: 'Verify the otp' })
+  @Post('/verify/otp')
+  @ApiConsumes('multipart/form-data', 'application/json')
+  async verifyTokenByEmail(
+    @Body(ValidationPipe) emailVerifyCredentialsDto: EmailVerifyCredentialsDto,
+  ) {
+    return await this.userService.verifyTokenByEmail(emailVerifyCredentialsDto);
+  }
+
+@Post("/sendEmail")
+async sendEmail(
+  @Body(ValidationPipe) emailVerifyCredentialsDto: EmailVerifyCredentialsDto,
+) {
+  return await this.userService.sendEmail(emailVerifyCredentialsDto);
 }
+}
+
+
+
